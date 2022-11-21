@@ -1,8 +1,12 @@
 library(tidyverse)
 library(fredr)
 library(readxl)
-#fredr_set_key("a276ace28f00c2ba0f9bfa14ea5f2289")
+library(dplyr)
+library(lubridate)
 
+fredr_set_key("a276ace28f00c2ba0f9bfa14ea5f2289")
+
+#download GDP data
 gdp_indonesia <- fredr(series_id = "NGDPRSAXDCIDQ",
               observation_start = as.Date("2014-01-01"),
               observation_end   = as.Date("2022-07-01"))
@@ -13,9 +17,18 @@ gdp_unitedstates <- fredr(series_id = "GDPC1",
                           observation_end   = as.Date("2022-07-01"))
 #Reference: https://fred.stlouisfed.org/series/GDPC1
 
-#Convert Indonesia local currency to Billions of USD
-gdp_indonesia$value_2 <- gdp_indonesia$value * 1000000 / 15735.60 / 1000000000
 
+#Convert GDP to growth
+gdp_indonesia = gdp_indonesia %>% group_by(month=month(date)) %>%
+  arrange(date) %>%
+  mutate(growth=value/lag(value,1))%>%
+  ungroup() %>% arrange(date)
+
+gdp_indonesia$growth<-(gdp_indonesia$growth-1)*100
+
+
+
+#download CPI data
 CPI_indonesia <- fredr(series_id = "IDNCPIALLMINMEI",
                        observation_start = as.Date("2014-01-01"),
                        observation_end   = as.Date("2022-01-01"))
