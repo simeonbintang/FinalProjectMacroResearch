@@ -70,4 +70,14 @@ effective_exchange_rate <- effective_exchange_rate[, c('Date', 'Indonesia', 'Uni
 effective_exchange_rate$Date <- as.Date(effective_exchange_rate$Date,
                                                 format = "%y-%m-%d")
 
+#Manufacturing Rate Indonesia
+manufacturing_rate_indonesia <- fredr(series_id = "PRMNTO01IDQ661N",
+                       observation_start = as.Date("2014-01-01"),
+                       observation_end   = as.Date("2022-07-01"))
+#Reference: https://fred.stlouisfed.org/series/PRMNTO01IDQ661N
 
+#Manufacturing Rate United States
+manufacturing_rate_unitedstates <- fredr(series_id = "PRMNTO01USQ661N",
+                                      observation_start = as.Date("2014-01-01"),
+                                      observation_end   = as.Date("2022-07-01"))
+#Reference: https://fred.stlouisfed.org/series/PRMNTO01USQ661N
