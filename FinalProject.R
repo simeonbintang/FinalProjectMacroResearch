@@ -16,10 +16,10 @@ gdp_unitedstates <- fredr(series_id = "GDPC1",
 #Convert Indonesia local currency to Billions of USD
 gdp_indonesia$value_2 <- gdp_indonesia$value * 1000000 / 15735.60 / 1000000000
 
-CPI_indonesia <- fredr(series_id = "FPCPITOTLZGIDN",
+CPI_indonesia <- fredr(series_id = "IDNCPIALLMINMEI",
                        observation_start = as.Date("2014-01-01"),
                        observation_end   = as.Date("2022-01-01"))
-#Reference: https://fred.stlouisfed.org/series/FPCPITOTLZGIDN
+#Reference: https://fred.stlouisfed.org/series/IDNCPIALLMINMEI
 
 CPI_unitedstates <- fredr(series_id = "FPCPITOTLZGUSA",
                        observation_start = as.Date("2014-01-01"),
