@@ -27,22 +27,38 @@ gdp_indonesia = gdp_indonesia %>% group_by(month=month(date)) %>%
 gdp_indonesia$growth<-(gdp_indonesia$growth-1)*100
 
 
-
 #download CPI data
 CPI_indonesia <- fredr(series_id = "IDNCPIALLMINMEI",
                        observation_start = as.Date("2014-01-01"),
                        observation_end   = as.Date("2022-01-01"))
 #Reference: https://fred.stlouisfed.org/series/IDNCPIALLMINMEI
 
+
 CPI_unitedstates <- fredr(series_id = "FPCPITOTLZGUSA",
                        observation_start = as.Date("2014-01-01"),
                        observation_end   = as.Date("2022-01-01"))
 #Reference: https://fred.stlouisfed.org/series/FPCPITOTLZGUSA
 
-interestrate_unitedstates <- fredr(series_id = "FEDFUNDS",
+#Convert CPI to monthly
+
+
+#Policy rate
+policyrate_unitedstates <- fredr(series_id = "FEDFUNDS",
                                 observation_start = as.Date("2014-01-01"),
                                 observation_end   = as.Date("2022-01-01"))
 #Reference: https://fred.stlouisfed.org/series/FEDFUNDS
+
+temp.file <- paste(tempfile(),".xlsx",sep = "")
+download.file("https://www.bis.org/statistics/cbpol/cbpol_2211.xlsx", temp.file, mode = "wb")
+policyrate_indonesia <- read_excel(temp.file, sheet =3, skip = 2)
+policyrate_indonesia<-policyrate_indonesia[-1,]
+colnames(policyrate_indonesia)[1]<-"Date"
+policyrate_indonesia$Date<-as.Date('1899-12-30')+days(policyrate_indonesia$Date)
+policyrate_indonesia = subset(policyrate_indonesia, select = c(Date,Indonesia))
+policyrate_indonesia = policyrate_indonesia[829:922,]
+
+#Reference: https://community.rstudio.com/t/number-to-date-problem-excel-to-r/40075 
+
 
 #Real effective exchange rate
 temp.file <- paste(tempfile(),".xlsx",sep = "")
