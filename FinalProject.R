@@ -1,5 +1,6 @@
 library(tidyverse)
 library(fredr)
+library(readxl)
 #fredr_set_key("a276ace28f00c2ba0f9bfa14ea5f2289")
 
 gdp_indonesia <- fredr(series_id = "NGDPRSAXDCIDQ",
@@ -29,3 +30,15 @@ interestrate_unitedstates <- fredr(series_id = "FEDFUNDS",
                                 observation_start = as.Date("2014-01-01"),
                                 observation_end   = as.Date("2022-01-01"))
 #Reference: https://fred.stlouisfed.org/series/FEDFUNDS
+
+#Real effective exchange rate
+temp.file <- paste(tempfile(),".xlsx",sep = "")
+download.file("https://www.bis.org/statistics/eer/broad.xlsx", temp.file, mode = "wb")
+effective_exchange_rate <- read_excel(temp.file, skip = 3)
+effective_exchange_rate <- effective_exchange_rate[-1,]
+colnames(effective_exchange_rate)[1] <- "Date"
+effective_exchange_rate <- effective_exchange_rate[, c('Date', 'Indonesia', 'United States')]
+effective_exchange_rate$Date <- as.Date(effective_exchange_rate$Date,
+                                                format = "%y-%m-%d")
+
+
