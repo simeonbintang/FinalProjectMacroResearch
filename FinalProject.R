@@ -3,51 +3,77 @@ library(fredr)
 library(readxl)
 library(dplyr)
 library(lubridate)
+library(zoo)
 
 fredr_set_key("a276ace28f00c2ba0f9bfa14ea5f2289")
 
-#download GDP data
+#GDP data
+##GDP Indonesia
 gdp_indonesia <- fredr(series_id = "NGDPRSAXDCIDQ",
               observation_start = as.Date("2014-01-01"),
-              observation_end   = as.Date("2022-07-01"))
+              observation_end   = as.Date("2022-09-01"))
 #Reference: https://fred.stlouisfed.org/series/NGDPRSAXDCIDQ
 
-gdp_unitedstates <- fredr(series_id = "GDPC1",
-                          observation_start = as.Date("2014-01-01"),
-                          observation_end   = as.Date("2022-07-01"))
-#Reference: https://fred.stlouisfed.org/series/GDPC1
-
-
-#Convert GDP to growth
 gdp_indonesia = gdp_indonesia %>% group_by(month=month(date)) %>%
   arrange(date) %>%
   mutate(growth=value/lag(value,1))%>%
   ungroup() %>% arrange(date)
 
 gdp_indonesia$growth<-(gdp_indonesia$growth-1)*100
+gdp_indonesia$log_gdp<-log(gdp_indonesia$value)
+
+##GDP United States
+
+gdp_unitedstates <- fredr(series_id = "GDPC1",
+                          observation_start = as.Date("2014-01-01"),
+                          observation_end   = as.Date("2022-09-01"))
+#Reference: https://fred.stlouisfed.org/series/GDPC1
+
+gdp_unitedstates = gdp_unitedstates %>% group_by(month=month(date)) %>%
+  arrange(date) %>%
+  mutate(growth=value/lag(value,1))%>%
+  ungroup() %>% arrange(date)
+
+gdp_unitedstates$growth<-(gdp_unitedstates$growth-1)*100
+gdp_unitedstates$log_gdp<-log(gdp_unitedstates$value)
 
 
-#download CPI data
+# CPI data
+##CPI Indonesia
 CPI_indonesia <- fredr(series_id = "IDNCPIALLMINMEI",
                        observation_start = as.Date("2014-01-01"),
-                       observation_end   = as.Date("2022-01-01"))
+                       observation_end   = as.Date("2022-09-01"))
 #Reference: https://fred.stlouisfed.org/series/IDNCPIALLMINMEI
 
+CPI_indonesia = CPI_indonesia %>% group_by(month=month(date)) %>%
+  arrange(date) %>%
+  mutate(inflation_rate_ind=value/lag(value,1))%>%
+  ungroup() %>% arrange(date)
 
-CPI_unitedstates <- fredr(series_id = "FPCPITOTLZGUSA",
+CPI_indonesia$inflation_rate_ind<-(CPI_indonesia$inflation_rate_ind-1)*100
+CPI_indonesia$log_inflation_ind<-log(CPI_indonesia$value)
+CPI_indonesia = subset(CPI_indonesia, select = c(date, value,inflation_rate_ind,log_inflation_ind))
+CPI_indonesia = CPI_indonesia[13:105,]
+
+##CPI United States
+CPI_unitedstates <- fredr(series_id = "USACPIALLMINMEI",
                        observation_start = as.Date("2014-01-01"),
-                       observation_end   = as.Date("2022-01-01"))
+                       observation_end   = as.Date("2022-09-01"))
 #Reference: https://fred.stlouisfed.org/series/FPCPITOTLZGUSA
 
-#Convert CPI to monthly
+CPI_unitedstates = CPI_unitedstates %>% group_by(month=month(date)) %>%
+  arrange(date) %>%
+  mutate(inflation_rate_us=value/lag(value,1))%>%
+  ungroup() %>% arrange(date)
+
+CPI_unitedstates$inflation_rate_us<-(CPI_unitedstates$inflation_rate_us-1)*100
+CPI_unitedstates$log_inflation_us<-log(CPI_unitedstates$value)
+CPI_unitedstates = subset(CPI_unitedstates, select = c(date, value,inflation_rate_us,log_inflation_us))
+CPI_unitedstates = CPI_unitedstates[13:105,]
 
 
 #Policy rate
-policyrate_unitedstates <- fredr(series_id = "FEDFUNDS",
-                                observation_start = as.Date("2014-01-01"),
-                                observation_end   = as.Date("2022-01-01"))
-#Reference: https://fred.stlouisfed.org/series/FEDFUNDS
-
+##Policy rate Indonesia
 temp.file <- paste(tempfile(),".xlsx",sep = "")
 download.file("https://www.bis.org/statistics/cbpol/cbpol_2211.xlsx", temp.file, mode = "wb")
 policyrate_indonesia <- read_excel(temp.file, sheet =3, skip = 2)
@@ -55,12 +81,22 @@ policyrate_indonesia<-policyrate_indonesia[-1,]
 colnames(policyrate_indonesia)[1]<-"Date"
 policyrate_indonesia$Date<-as.Date('1899-12-30')+days(policyrate_indonesia$Date)
 policyrate_indonesia = subset(policyrate_indonesia, select = c(Date,Indonesia))
-policyrate_indonesia = policyrate_indonesia[829:922,]
+policyrate_indonesia = policyrate_indonesia[829:921,]
+colnames(policyrate_indonesia)[2]<-"BI_rate"
+
 
 #Reference: https://community.rstudio.com/t/number-to-date-problem-excel-to-r/40075 
 
+##Fed Fund Rate
+policyrate_unitedstates <- fredr(series_id = "FEDFUNDS",
+                                observation_start = as.Date("2015-01-01"),
+                                observation_end   = as.Date("2022-09-01"))
+policyrate_unitedstates <- policyrate_unitedstates[, c('date', 'value')]
+#Reference: https://fred.stlouisfed.org/series/FEDFUNDS
+
 
 #Real effective exchange rate
+##REER Indonesia and US
 temp.file <- paste(tempfile(),".xlsx",sep = "")
 download.file("https://www.bis.org/statistics/eer/broad.xlsx", temp.file, mode = "wb")
 effective_exchange_rate <- read_excel(temp.file, skip = 3)
@@ -69,15 +105,73 @@ colnames(effective_exchange_rate)[1] <- "Date"
 effective_exchange_rate <- effective_exchange_rate[, c('Date', 'Indonesia', 'United States')]
 effective_exchange_rate$Date <- as.Date(effective_exchange_rate$Date,
                                                 format = "%y-%m-%d")
+effective_exchange_rate = effective_exchange_rate[253:345,]
 
-#Manufacturing Rate Indonesia
-manufacturing_rate_indonesia <- fredr(series_id = "PRMNTO01IDQ661N",
+
+#Production Index
+##Production Index Indonesia
+prod_index_ind <- fredr(series_id = "IDNPRMNTO01IXOBM",
                        observation_start = as.Date("2014-01-01"),
-                       observation_end   = as.Date("2022-07-01"))
+                       observation_end   = as.Date("2022-09-01"))
 #Reference: https://fred.stlouisfed.org/series/PRMNTO01IDQ661N
 
-#Manufacturing Rate United States
-manufacturing_rate_unitedstates <- fredr(series_id = "PRMNTO01USQ661N",
+prod_index_ind = prod_index_ind %>% group_by(month=month(date)) %>%
+  arrange(date) %>%
+  mutate(production=value/lag(value,1))%>%
+  ungroup() %>% arrange(date)
+
+prod_index_ind$log_prod_ind<-log(prod_index_ind$value)
+prod_index_ind = prod_index_ind[13:99,]
+
+
+##Production Index United States
+prod_index_us <- fredr(series_id = "INDPRO",
                                       observation_start = as.Date("2014-01-01"),
-                                      observation_end   = as.Date("2022-07-01"))
+                                      observation_end   = as.Date("2022-09-01"))
 #Reference: https://fred.stlouisfed.org/series/PRMNTO01USQ661N
+
+prod_index_us = prod_index_us %>% group_by(month=month(date)) %>%
+  arrange(date) %>%
+  mutate(growth_prod_us=value/lag(value,1))%>%
+  ungroup() %>% arrange(date)
+
+prod_index_us$log_prod_us<-log(prod_index_us$value)
+prod_index_us<- prod_index_us[, c('date', 'value', 'growth_prod_us', 'log_prod_us')]
+prod_index_us = prod_index_us[13:105,]
+
+#global uncertainty index
+global_uncertainty_index<-fredr(series_id = "GEPUPPP",
+                                observation_start = as.Date("2014-01-01"),
+                                observation_end   = as.Date("2022-09-01"))
+
+global_uncertainty_index = global_uncertainty_index %>% group_by(month=month(date)) %>%
+  arrange(date) %>%
+  mutate(uncertainty_growth=value/lag(value,1))%>%
+  ungroup() %>% arrange(date)
+
+global_uncertainty_index$log_uncertainty<-log(global_uncertainty_index$value)
+global_uncertainty_index <- global_uncertainty_index[, c('date', 'value', 'uncertainty_growth', 'log_uncertainty')]
+global_uncertainty_index = global_uncertainty_index[13:105,]
+
+
+#Bank Credit
+##Bank Credit Indonesia
+
+
+#Bank Credit US
+credit_us<-fredr(series_id = "LOANINV",
+                                observation_start = as.Date("2014-01-01"),
+                                observation_end   = as.Date("2022-09-01"))
+
+credit_us = credit_us %>% group_by(month=month(date)) %>%
+  arrange(date) %>%
+  mutate(credit_us_growth=value/lag(value,1))%>%
+  ungroup() %>% arrange(date)
+credit_us$log_credit_us<-log(credit_us$value)
+credit_us <- credit_us[, c('date', 'value', 'credit_us_growth', 'log_credit_us')]
+credit_us = credit_us[13:105,]
+
+
+#merge data
+
+
