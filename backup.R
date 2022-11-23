@@ -11,6 +11,18 @@ fredr_set_key("a276ace28f00c2ba0f9bfa14ea5f2289")
 
 #Dependent Variable - Output - Production Index
 ##Production Index Indonesia
+prod_index_ind <- fredr(series_id = "IDNPRMNTO01IXOBM",
+                        observation_start = as.Date("2014-01-01"),
+                        observation_end   = as.Date("2022-09-01")) %>% 
+  mutate(growth_prod_ind = ((value/lag(value,12))-1)*100)%>%
+  arrange(date) %>%
+  mutate(log_prod_ind = log(value),
+         date = format(date, "%Y-%m")) %>%
+  rename(prod_index_ind = value) %>%
+  select(1,3,6,7) %>%
+  filter(date > '2014-12')
+
+#Reference: https://fred.stlouisfed.org/series/PRMNTO01IDQ661N
 create_df <- function(a,b,c,d){
   df <- fredr(series_id = a,
               observation_start = as.Date("2014-01-01"),
@@ -25,26 +37,62 @@ create_df <- function(a,b,c,d){
 }
 
 prod_index_ind <- create_df("IDNPRMNTO01IXOBM", growth_prod_ind, log_prod_ind, prod_index_ind)
-#Reference: https://fred.stlouisfed.org/series/PRMNTO01IDQ661N
 
-  
 ##Production Index United States
 
-prod_index_us <- create_df("INDPRO", growth_prod_us, log_prod_us, prod_index_us)
+prod_index_us <-create_df("INDPRO", growth_prod_us, log_prod_us)
+prod_index_us <- fredr(series_id = "INDPRO",
+                       observation_start = as.Date("2014-01-01"),
+                       observation_end   = as.Date("2022-09-01"))
 #Reference: https://fred.stlouisfed.org/series/PRMNTO01USQ661N
+
+prod_index_us = prod_index_us %>% group_by(month=month(date)) %>%
+  arrange(date) %>%
+  mutate(growth_prod_us=((value/lag(value,12))-1)*100)%>%
+  ungroup() %>% arrange(date)
+
+prod_index_us$log_prod_us<-log(prod_index_us$value)
+colnames(prod_index_us)[3] <- "prod_index_us"
+prod_index_us$date <- format(as.Date(prod_index_us$date), "%Y-%m")
+prod_index_us<- prod_index_us[, c('date', 'prod_index_us', 'growth_prod_us', 'log_prod_us')]
+prod_index_us = prod_index_us[13:105,]
 
 
 # Dependent Variable-CPI data
 ##CPI Indonesia
-
-CPI_Indonesia <- create_df("IDNCPIALLMINMEI", inflation_ind, log_inflation_ind, CPI_ind)
+CPI_indonesia <- fredr(series_id = "IDNCPIALLMINMEI",
+                       observation_start = as.Date("2014-01-01"),
+                       observation_end   = as.Date("2022-09-01"))
 #Reference: https://fred.stlouisfed.org/series/IDNCPIALLMINMEI
+
+CPI_indonesia = CPI_indonesia %>% group_by(month=month(date)) %>%
+  arrange(date) %>%
+  mutate(inflation_ind=((value/lag(value,12))-1)*100)%>%
+  ungroup() %>% arrange(date)
+
+CPI_indonesia$log_inflation_ind<-log(CPI_indonesia$value)
+colnames(CPI_indonesia)[3] <- "CPI_ind"
+CPI_indonesia$date <- format(as.Date(CPI_indonesia$date), "%Y-%m")
+CPI_indonesia = subset(CPI_indonesia, select = c(date, CPI_ind ,inflation_ind,log_inflation_ind))
+CPI_indonesia = CPI_indonesia[13:105,]
 
 
 ##CPI United States
-CPI_unitedstates <- create_df("USACPIALLMINMEI", inflation_us, log_inflation_us, CPI_us)
+CPI_unitedstates <- fredr(series_id = "USACPIALLMINMEI",
+                          observation_start = as.Date("2014-01-01"),
+                          observation_end   = as.Date("2022-09-01"))
 #Reference: https://fred.stlouisfed.org/series/FPCPITOTLZGUSA
 
+CPI_unitedstates = CPI_unitedstates %>% group_by(month=month(date)) %>%
+  arrange(date) %>%
+  mutate(inflation_us=((value/lag(value,12))-1)*100)%>%
+  ungroup() %>% arrange(date)
+
+CPI_unitedstates$log_inflation_us<-log(CPI_unitedstates$value)
+colnames(CPI_unitedstates)[3] <- "CPI_us"
+CPI_unitedstates$date <- format(as.Date(CPI_unitedstates$date), "%Y-%m")
+CPI_unitedstates = subset(CPI_unitedstates, select = c(date, CPI_us ,inflation_us,log_inflation_us))
+CPI_unitedstates = CPI_unitedstates[13:105,]
 
 #Dependent Variable - Credit Growth
 
@@ -53,8 +101,21 @@ CPI_unitedstates <- create_df("USACPIALLMINMEI", inflation_us, log_inflation_us,
 
 
 #Bank Credit US
-credit_us <- create_df("LOANINV", growth_credit_us, log_credit_us, credit_us)
-#Reference?????
+credit_us<-fredr(series_id = "LOANINV",
+                 observation_start = as.Date("2014-01-01"),
+                 observation_end   = as.Date("2022-09-01"))
+
+credit_us = credit_us %>% group_by(month=month(date)) %>%
+  arrange(date) %>%
+  mutate(growth_credit_us=((value/lag(value,12))-1)*100)%>%
+  ungroup() %>% arrange(date)
+
+credit_us$log_credit_us<-log(credit_us$value)
+colnames(credit_us)[3] <- "credit_us"
+credit_us$date <- format(as.Date(credit_us$date), "%Y-%m")
+credit_us = subset(credit_us, select = c(date, credit_us ,growth_credit_us,log_credit_us))
+credit_us = credit_us[13:105,]
+
 
 #Independent Variable-Policy rate
 ##Policy rate Indonesia
@@ -72,13 +133,13 @@ policyrate_indonesia$date <- format(as.Date(policyrate_indonesia$date), "%Y-%m")
 #Reference: https://community.rstudio.com/t/number-to-date-problem-excel-to-r/40075 
 
 ##Fed Fund Rate
-policyrate_unitedstates <- create_df("FEDFUNDS", 
-                                     growth_rate_us, 
-                                     og_rate_us, 
-                                     FFR) %>%
-  select(1,2)
+policyrate_unitedstates <- fredr(series_id = "FEDFUNDS",
+                                 observation_start = as.Date("2015-01-01"),
+                                 observation_end   = as.Date("2022-09-01"))
+policyrate_unitedstates <- policyrate_unitedstates[, c('date', 'value')]
 #Reference: https://fred.stlouisfed.org/series/FEDFUNDS
-
+policyrate_unitedstates$date <- format(as.Date(policyrate_unitedstates$date), "%Y-%m")
+colnames(policyrate_unitedstates)[2]<-"FFR"
 
 #Independent Variable-Real effective exchange rate
 ##REER Indonesia and US
@@ -98,9 +159,20 @@ effective_exchange_rate$log_er_ind<-log(effective_exchange_rate$er_ind)
 effective_exchange_rate$log_er_us<-log(effective_exchange_rate$er_us)
 
 #Independent Variable - Global Uncertainty Index
+global_uncertainty_index<-fredr(series_id = "GEPUPPP",
+                                observation_start = as.Date("2014-01-01"),
+                                observation_end   = as.Date("2022-09-01"))
 
-global_uncertainty_index <- create_df("GEPUPPP", growth_uncertainty, log_uncertainty, uncertainty_index)
-#Reference???
+global_uncertainty_index = global_uncertainty_index %>% group_by(month=month(date)) %>%
+  arrange(date) %>%
+  mutate(growth_uncertainty=((value/lag(value,12))-1)*100)%>%
+  ungroup() %>% arrange(date)
+
+colnames(global_uncertainty_index)[3] <- "uncertainty_index"
+global_uncertainty_index$log_uncertainty<-log(global_uncertainty_index$uncertainty_index)
+global_uncertainty_index$date <- format(as.Date(global_uncertainty_index$date), "%Y-%m")
+global_uncertainty_index <- global_uncertainty_index[, c('date', 'uncertainty_index', 'growth_uncertainty', 'log_uncertainty')]
+global_uncertainty_index = global_uncertainty_index[13:105,]
 
 #merge data
 library(plyr)
