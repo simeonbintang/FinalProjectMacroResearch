@@ -106,7 +106,7 @@ CPI_unitedstates <- create_df("USACPIALLMINMEI", inflation_us, log_inflation_us,
 
 #Bank Credit US
 credit_us <- create_df("LOANINV", growth_credit_us, log_credit_us, credit_us)
-#Reference?????
+#Reference: https://fred.stlouisfed.org/series/LOANINV
 
 #Independent Variable-Policy rate
 ##Policy rate Indonesia
@@ -159,7 +159,7 @@ effective_exchange_rate <- extract_data("https://www.bis.org/statistics/eer/broa
 #Independent Variable - Global Uncertainty Index
 
 global_uncertainty_index <- create_df("GEPUPPP", growth_uncertainty, log_uncertainty, uncertainty_index)
-#Reference???
+#Reference: https://fred.stlouisfed.org/series/GEPUPPP
 
 #merge data
 library(plyr)
