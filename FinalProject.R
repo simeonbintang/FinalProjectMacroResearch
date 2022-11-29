@@ -216,47 +216,54 @@ pp.test(d_er_ind)
 library(dynlm)
 library(vars)
 
-##run ARDL model Indonesia - Inflation (ignoring optimum lag)
-model_1_ind_inflation<-dynlm(d(log_inflation_ind,1)~L(BI_rate,0:1)+L(log_uncertainty,0:1)+L(log_er_ind,0:1),data=data_ind_ts)
+#running model (Indonesia)
+##model credit
+
+##model inflation 
+model_1_ind_inflation<-dynlm(d(log_inflation_ind)~L(BI_rate)+L(log_uncertainty)+L(log_er_ind),data=data_ind_ts)
 summary(model_1_ind_inflation)
-model_2_ind_inflation<-dynlm(d(log_inflation_ind,1)~L(BI_rate,0:1)+L(log_uncertainty,0:1)+L(log_er_ind,0:1)+L((BI_rate*log_uncertainty),0:1),data=data_ind_ts)
+
+model_2_ind_inflation<-dynlm(d(log_inflation_ind)~L(BI_rate)+L(log_uncertainty)+L(log_er_ind)+L((BI_rate*log_uncertainty)),data=data_ind_ts)
 summary(model_2_ind_inflation)
-model_3_ind_inflation<-dynlm(d(log_inflation_ind,1)~L(BI_rate,0:1)+L(log_uncertainty,0:1)+L(log_er_ind,0:1)+L((BI_rate*log_uncertainty),0:1)+L((BI_rate*log_uncertainty*dummy),0:1),data=data_ind_ts)
+
+model_3_ind_inflation<-dynlm(d(log_inflation_ind)~L(BI_rate)+L(log_uncertainty)+L(log_er_ind)+L(BI_rate*log_uncertainty)+L(BI_rate*log_uncertainty*dummy),data=data_ind_ts)
 summary(model_3_ind_inflation)
 
-
-##run ARDL model Indonesia - Output Growth
-model_1_ind_output<-dynlm(d(log_prod_ind,1)~L(BI_rate,0:1)+L(log_uncertainty,0:1)+L(log_er_ind,0:1),data=data_ind_ts)
+##model output 
+model_1_ind_output<-dynlm(d(log_prod_ind)~L(BI_rate)+L(log_uncertainty)+L(log_er_ind),data=data_ind_ts)
 summary(model_1_ind_output)
-model_2_ind_output<-dynlm(d(log_prod_ind,1)~L(BI_rate,0:1)+L(log_uncertainty,0:1)+L(log_er_ind,0:1)+L((BI_rate*log_uncertainty),0:1),data=data_ind_ts)
+
+model_2_ind_output<-dynlm(d(log_prod_ind)~L(BI_rate)+L(log_uncertainty)+L(log_er_ind)+L((BI_rate*log_uncertainty)),data=data_ind_ts)
 summary(model_2_ind_output)
-model_3_ind_output<-dynlm(d(log_prod_ind,1)~L(BI_rate,0:1)+L(log_uncertainty,0:1)+L(log_er_ind,0:1)+L((BI_rate*log_uncertainty),0:1)+L((BI_rate*log_uncertainty*dummy),0:1),data=data_ind_ts)
+
+model_3_ind_output<-dynlm(d(log_prod_ind)~L(BI_rate)+L(log_uncertainty)+L(log_er_ind)+L(BI_rate*log_uncertainty)+L(BI_rate*log_uncertainty*dummy),data=data_ind_ts)
 summary(model_3_ind_output)
 
-
-##run ARDL model US - Credit Growth
-model_1_us_credit<-dynlm(d(log_credit_us,1)~L(FFR,0:1)+L(log_uncertainty,0:1)+L(log_er_us,0:1),data=data_us_ts)
+#running model (United States)
+##model credit 
+model_1_us_credit<-dynlm(d(log_credit_us)~L(FFR)+L(log_uncertainty)+L(log_er_us),data=data_us_ts)
 summary(model_1_us_credit)
-model_2_us_credit<-dynlm(d(log_credit_us,1)~L(FFR,0:1)+L(log_uncertainty,0:1)+L(log_er_us,0:1)+L((FFR*log_uncertainty),0:1),data=data_us_ts)
+model_2_us_credit<-dynlm(d(log_credit_us)~L(FFR)+L(log_uncertainty)+L(log_er_us)+L((FFR*log_uncertainty)),data=data_us_ts)
 summary(model_2_us_credit)
-model_3_us_credit<-dynlm(d(log_credit_us,1)~L(FFR,0:1)+L(log_uncertainty,0:1)+L(log_er_us,0:1)+L((FFR*log_uncertainty),0:1)+L((FFR*log_uncertainty*dummy),0:1),data=data_us_ts)
+model_3_us_credit<-dynlm(d(log_credit_us)~L(FFR)+L(log_uncertainty)+L(log_er_us)+L((FFR*log_uncertainty))+L((FFR*log_uncertainty*dummy)),data=data_us_ts)
 summary(model_3_us_credit)
 
 ##run ARDL model US - Inflation
-model_1_us_inflation<-dynlm(d(log_inflation_us,1)~L(FFR,0:1)+L(log_uncertainty,0:1)+L(log_er_us,0:1),data=data_us_ts)
+model_1_us_inflation<-dynlm(d(log_inflation_us)~L(FFR)+L(log_uncertainty)+L(log_er_us),data=data_us_ts)
 summary(model_1_us_inflation)
-model_2_us_inflation<-dynlm(d(log_inflation_us,1)~L(FFR,0:1)+L(log_uncertainty,0:1)+L(log_er_us,0:1)+L((FFR*log_uncertainty),0:1),data=data_us_ts)
+model_2_us_inflation<-dynlm(d(log_inflation_us)~L(FFR)+L(log_uncertainty)+L(log_er_us)+L((FFR*log_uncertainty)),data=data_us_ts)
 summary(model_2_us_inflation)
-model_3_us_inflation<-dynlm(d(log_inflation_us,1)~L(FFR,0:1)+L(log_uncertainty,0:1)+L(log_er_us,0:1)+L((FFR*log_uncertainty),0:1)+L((FFR*log_uncertainty*dummy),0:1),data=data_us_ts)
+model_3_us_inflation<-dynlm(d(log_inflation_us)~L(FFR)+L(log_uncertainty)+L(log_er_us)+L((FFR*log_uncertainty))+L((FFR*log_uncertainty*dummy)),data=data_us_ts)
 summary(model_3_us_inflation)
 
-##run ARDL model - Output Growth
-model_1_us_output<-dynlm(d(log_prod_us,1)~L(FFR,0:1)+L(log_uncertainty,0:1)+L(log_er_us,0:1),data=data_us_ts)
+##run ARDL model - Output 
+model_1_us_output<-dynlm(d(log_prod_us)~L(FFR)+L(log_uncertainty)+L(log_er_us),data=data_us_ts)
 summary(model_1_us_output)
-model_2_us_output<-dynlm(d(log_prod_us,1)~L(FFR,0:1)+L(log_uncertainty,0:1)+L(log_er_us,0:1)+L((FFR*log_uncertainty),0:1),data=data_us_ts)
+model_2_us_output<-dynlm(d(log_prod_us)~L(FFR)+L(log_uncertainty)+L(log_er_us)+L((FFR*log_uncertainty)),data=data_us_ts)
 summary(model_2_us_output)
-model_3_us_output<-dynlm(d(log_prod_us,)~L(FFR,0:1)+L(log_uncertainty,0:1)+L(log_er_us,0:1)+L((FFR*log_uncertainty),0:1)+L((FFR*log_uncertainty*dummy),0:1),data=data_us_ts)
+model_3_us_output<-dynlm(d(log_prod_us,)~L(FFR)+L(log_uncertainty)+L(log_er_us)+L((FFR*log_uncertainty))+L((FFR*log_uncertainty*dummy)),data=data_us_ts)
 summary(model_3_us_output)
+
 
 #run VECM Model (STEP2)
 ##run VECM Model Indonesia - Inflation
