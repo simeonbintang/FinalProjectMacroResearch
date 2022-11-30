@@ -29,6 +29,7 @@ colname1 <- c("growth_prod_ind",
               "growth_prod_us",
               "inflation_ind",
               "inflation_us",
+              "growth_credit_ind",
               "growth_credit_us",
               "growth_rate_us",
               "growth_uncertainty")
@@ -37,6 +38,7 @@ colname2 <- c("log_prod_ind",
               "log_prod_us",
               "log_inflation_ind",
               "log_inflation_us",
+              "log_credit_ind",
               "log_credit_us",
               "log_rate_us",
               "log_uncertainty")
@@ -45,6 +47,7 @@ colname3 <- c("prod_index_ind",
               "prod_index_us",
               "CPI_ind",
               "CPI_us",
+              "credit_ind",
               "credit_us",
               "FFR",
               "uncertainty_index")
@@ -53,6 +56,7 @@ dfname <- c("prod_index_ind",
             "prod_index_us",
             "CPI_Indonesia",
             "CPI_unitedstates",
+            "credit_ind",
             "credit_us",
             "policyrate_unitedstates",
             "global_uncertainty_index")
@@ -104,12 +108,14 @@ CPI_unitedstates <- create_df("USACPIALLMINMEI", inflation_us, log_inflation_us,
 #Reference: https://fred.stlouisfed.org/series/FPCPITOTLZGUSA
 
 ##e. Credit Indonesia
-
+path<-"C:/HARRIS/FALL 2022/R/Final Project/FinalProjectMacroResearch"
+credit_ind<-read_excel(file.path(path,"credit_ind.xlsx"))
+credit_ind$log_credit_ind<-log(credit_ind$credit_ind)
+#Reference:https://www.ojk.go.id/id/kanal/perbankan/data-dan-statistik/statistik-perbankan-indonesia/Default.aspx 
 
 ##f. Credit US
-
 credit_us <- create_df("LOANINV", growth_credit_us, log_credit_us, credit_us)
-#Reference:??
+#Reference:https://fred.stlouisfed.org/searchresults/?st=LOANINV 
 
 #1.2 INDEPENDENT VARIABLE - POLICY RATE
 
@@ -178,12 +184,13 @@ merge <- function(a,b,c,d,e,f,g,h){
 }
 
 data_ind <- merge(prod_index_ind, 
-                  CPI_Indonesia,
+                  CPI_indonesia,
+                  credit_ind,
                   global_uncertainty_index,
                   effective_exchange_rate,
                   policyrate_indonesia, 
-                  12,
-                  14,
+                  15,
+                  17,
                   2020-03)
 
 data_us <- merge(prod_index_us, 
@@ -198,8 +205,8 @@ data_us <- merge(prod_index_us,
 
 -----------
   
-data_ind<-join_all(list(prod_index_ind, CPI_indonesia,global_uncertainty_index,effective_exchange_rate,policyrate_indonesia), by='date', type='left')
-data_ind<-data_ind[,-c(12,14)]
+data_ind<-join_all(list(prod_index_ind, CPI_indonesia,credit_ind,global_uncertainty_index,effective_exchange_rate,policyrate_indonesia), by='date', type='left')
+data_ind<-data_ind[,-c(15,17)]
 data_ind$dummy<-ifelse(data_ind$date>="2020-03", 1, 0)
 
 data_us<-join_all(list(prod_index_us, CPI_unitedstates, credit_us, global_uncertainty_index,effective_exchange_rate,policyrate_unitedstates), by='date', type='left')
@@ -267,6 +274,11 @@ ts.plot(data_ind$BI_rate)
 ts.plot(data_ind$log_er_ind)
 ts.plot(data_ind$log_uncertainty)
 
+ts.plot(data_us$log_inflation_us)
+ts.plot(data_us$log_prod_us)
+ts.plot(data_us$FFR)
+ts.plot(data_us$log_er_us)
+
 ##c. check stationarity data log
 library(tseries)
 pp.test(data_ind$CPI_ind) #nonstatitioner
@@ -274,6 +286,11 @@ pp.test(data_ind$prod_index_ind) #statitioner
 pp.test(data_ind$uncertainty_index) #stationer
 pp.test(data_ind$BI_rate)#nonstationer
 pp.test(data_ind$er_ind) #nonstationer
+
+pp.test(data_us$CPI_us) #nonstatitioner
+pp.test(data_us$prod_index_us) #nonstatitioner
+pp.test(data_us$FFR)#nonstationer
+pp.test(data_us$er_us)#nonstationer
 
 ##d. ARDL model will work on stationary as well as non stationary data
 
@@ -289,8 +306,17 @@ pp.test(d_birate)
 d_er_ind<-diff(data_ind$er_ind)
 pp.test(d_er_ind)
 
-#Based on PP test, all data are stationary in first difference, so we can apply
-#ARDL model
+d_CPI_US<-diff(data_us$CPI_us)
+pp.test(d_CPI_US)
+d_prod_index_US<-diff(data_us$prod_index_us)
+pp.test(d_prod_index_US)
+d_FFR<-diff(data_us$FFR)
+pp.test(d_FFR)
+d_er_us<-diff(data_us$er_us)
+pp.test(d_er_us)
+
+#Based on PP test, all data are stationary in the level and first difference, 
+#so we can apply an ARDL model
 
 ##f. run model ARDL each country (STEP1)
 #run ARDL model Indonesia - Credit Growth
@@ -299,6 +325,14 @@ library(vars)
 
 #running model (Indonesia)
 ##model credit
+model_1_ind_credit<-dynlm(d(log_credit_ind)~L(BI_rate)+L(log_uncertainty)+L(log_er_ind),data=data_ind_ts)
+summary(model_1_ind_credit)
+
+model_2_ind_credit<-dynlm(d(log_credit_ind)~L(BI_rate)+L(log_uncertainty)+L(log_er_ind)+L((BI_rate*log_uncertainty)),data=data_ind_ts)
+summary(model_2_ind_credit)
+
+model_3_ind_credit<-dynlm(d(log_credit_ind)~L(BI_rate)+L(log_uncertainty)+L(log_er_ind)+L((BI_rate*log_uncertainty))+L((BI_rate*log_uncertainty*dummy)),data=data_ind_ts)
+summary(model_3_ind_credit)
 
 ##model inflation 
 model_1_ind_inflation<-dynlm(d(log_inflation_ind)~L(BI_rate)+L(log_uncertainty)+L(log_er_ind),data=data_ind_ts)
