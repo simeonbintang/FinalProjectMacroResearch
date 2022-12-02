@@ -11,6 +11,7 @@ library(tidytext)
 library(urca)
 library(forecast)
 library(tseries)
+library(ggplot2)
 
 ##1. DATA WRANGLING/CLEANING
 
@@ -55,7 +56,7 @@ colname3 <- c("prod_index_ind",
 
 dfname <- c("prod_index_ind",
             "prod_index_us",
-            "CPI_Indonesia",
+            "CPI_indonesia",
             "CPI_unitedstates",
             "credit_ind",
             "credit_us",
@@ -212,8 +213,8 @@ data_us <- merge(prod_index_us,
                  16,
                  "2020-01")
 
-write.csv(data_ind,"C:/HARRIS/FALL 2022/R/Final Project/FinalProjectMacroResearch/data_ind.csv")
-write.csv(data_us,"C:/HARRIS/FALL 2022/R/Final Project/FinalProjectMacroResearch/data_us.csv")
+write.csv(data_ind)
+write.csv(data_us)
 
 ##2. CREATING PLOTS FOR DEPENDENT VARIABLES
 
@@ -225,7 +226,8 @@ all_df_plots <- inner_join(data_ind, data_us, by = c('date',
                                                      'growth_uncertainty', 
                                                      'log_uncertainty', 
                                                      'dummy'))
-  
+write.csv("all_df")
+
 vars_plot <- function(x,y){
 all_df_plots %>%
   select(date, {{x}}, {{y}}) %>%
@@ -235,31 +237,31 @@ all_df_plots %>%
            scale_color_manual(values = c("darkblue", "darkred")) +
   theme(axis.text.x = element_text(angle = 90)) +
   scale_x_date(date_labels="%b %y",date_breaks  ="3 month") +
-    xlab("Date") %>%
-  print()
+    xlab("Date") +
+    theme_bw()
 }
 
 #plot uncertainty
-ggplot(all_df_plots, aes(x = date, y = growth_uncertainty)) +
+plot_uncertainty <- ggplot(all_df_plots, aes(x = date, y = growth_uncertainty)) +
   geom_line() +
   theme(axis.text.x = element_text(angle = 90)) +
   scale_x_date(date_labels="%b %y",date_breaks  ="3 month") +
   xlab("Date") +
   ggtitle("Global Uncertainty Index 2015-2022") + 
-  ylab("Global Uncertainty")
+  ylab("Global Uncertainty") 
 
 #plot credit
-vars_plot(growth_credit_ind, growth_credit_us) +
+plot_credit <- vars_plot(growth_credit_ind, growth_credit_us) +
   ggtitle("Comparison of Indonesia and US Credit Growth 2015-2022") + 
   ylab("Growth Credit")
 
 #plot inflation
-vars_plot(inflation_ind,inflation_us) +
+plot_inflation <- vars_plot(inflation_ind,inflation_us) +
   ggtitle("Comparison of Inflation between Indonesia and US 2015-2022") + 
   ylab("Inflation")
 
 #plot production (output)
-vars_plot(growth_prod_ind,growth_prod_us) +
+plot_prod <- vars_plot(growth_prod_ind,growth_prod_us) +
   ggtitle("Comparison of Indonesia and US Production Growth 2015-2022") + 
   ylab("Growth Production")
 
@@ -471,12 +473,10 @@ NRC_Ind_News <- plot(all_df_Ind, nrc) +
   labs(title = "United States News Sentiment (NRC) to Interest Rate Changes 2015 - 2022") 
 
 BING_Ind_News <- plot(all_df_Ind, bing) +
-  labs(title = "United States News Sentiment (BING) to Interest Rate Changes 2015 - 2022") %>%
-  print
+  labs(title = "United States News Sentiment (BING) to Interest Rate Changes 2015 - 2022") 
 
 Affin_Ind_News <- plot(all_df_Ind, affin) +
-  labs(title = "Indonesia News Sentiment (AFINN) to Interest Rate Changes 2015 - 2022") %>%
-  print()
+  labs(title = "Indonesia News Sentiment (AFINN) to Interest Rate Changes 2015 - 2022") 
 
 #4.2 PLOT FOR NEWS IN THE US
 
@@ -525,14 +525,126 @@ all_df_US <- do.call(rbind, all_articles_US)
 #Creating Plots for the three sentiments of Indonesian News
 
 NRC_US_News <- plot(all_df_US, nrc) +
-  labs(title = "United States News Sentiment (NRC) to Interest Rate Changes 2015 - 2022") %>%
-  print()
+  labs(title = "United States News Sentiment (NRC) to Interest Rate Changes 2015 - 2022")
 
 BING_US_News <- plot(all_df_US, bing) +
-  labs(title = "United States News Sentiment (BING) to Interest Rate Changes 2015 - 2022") %>%
-  print()
+  labs(title = "United States News Sentiment (BING) to Interest Rate Changes 2015 - 2022") 
 
 Affin_US_News <- plot(all_df_US, afinn) +
   labs(title = "United States News Sentiment (AFINN) to Interest Rate Changes 2015 - 2022") %>%
   print()
+
+##5. SHINY 
+
+library(tidyverse)
+library(sf)
+library(spData)
+library(ggplot2)
+library(shiny)
+library(shinydashboard)
+library(plotly)
+
+
+all_df_plots$date <- format(as.Date(all_df_plots$date), "%Y-%m")
+all_df_plots <- all_df_plots %>% separate(date,
+                                          c("year", "month"),
+                                          sep = "-")
+ui <- fluidPage(
+  fluidRow(
+    column(width = 12, 
+           align = "center", 
+           tags$h1("Research Report: Effects of Monetary Policy During Covid-19"),
+           tags$hr())
+    ),
+  fluidRow(
+    column(width = 12, 
+           align = "center", 
+           tags$em(tags$h1("An Overview from Indonesia and the US")))
+      ),
+  fluidRow(
+    column(width = 12,
+           align = "center",
+           radioButtons(inputId = "dp",
+                       label = "Choose Dependend Variable Plot",
+                       choices = c("Global Uncertainty Plot", "Inflation Plot", "Production Growth", "Credit"),
+                       inline = T),
+           plotlyOutput("varplot")
+    )),
+  fluidRow(
+    titlePanel("Explore Our Data Table"),
+    sidebarLayout(
+      sidebarPanel(
+        selectizeInput(
+          "show_vars",
+          "Columns to show:",
+          choices = colnames(all_df_plots),
+          multiple = TRUE,
+          selected = c("year", "month", "prod_index_ind")
+        ),
+        actionButton("button", "Click to Confirm"),
+        uiOutput("date")
+      ),
+      mainPanel(tableOutput("table"))
+    )
+  ),
+  fluidRow(
+    column(width = 12,
+           align = "center",
+           selectInput(inputId = "sa",
+                       label = "Choose Sentiment Type",
+                       choices = c("NRC US", "BING US", "Afinn US")),
+           plotlyOutput("sent", height = "700px"))
+    )
+  )
+
+server <- function(input, output, session) {
+  
+  output$varplot <- renderPlotly({
+    if (input$dp == "Global Uncertainty Plot") {plot_uncertainty} 
+    else if (input$dp == "Inflation Plot") {plot_inflation}
+    else if (input$dp == "Production Growth") {plot_prod}
+    else if (input$dp == "Credit") {plot_credit}
+    else (return(NULL))
+  })
+
+  data.react <- eventReactive(input$button, {
+    all_df_plots[, input$show_vars]
+  })
+  observeEvent(input$button, {
+    output$date <- renderUI({
+      data.sel <- data.react()
+      selectizeInput("wy",
+                     "Choose Year",
+                     choices = c("All", sort(as.character(
+                       unique(data.sel$year)
+                     ))),
+                     selected = "All")
+    })
+    
+    df_subset <- eventReactive(input$wy, {
+      data.sel <- data.react()
+      if (input$wy == "All") {
+        data.sel
+      }
+      else{
+        data.sel[data.sel$year == input$wy,]
+      }
+    })
+    
+    output$table <- renderTable({
+      df_subset()
+    })
+  })
+
+#source: https://stackoverflow.com/questions/47657110/selection-of-columns-for-the-table-in-shiny
+  
+  output$sent <- renderPlotly({
+    if (input$sa == "NRC US") {NRC_US_News} 
+    else if (input$sa == "BING US") {BING_US_News}
+    else if (input$sa == "Afinn US") {Affin_US_News}
+    else (return(NULL))
+  })
+}
+shinyApp(ui = ui, server = server)
+
 
