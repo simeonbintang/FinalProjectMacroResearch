@@ -10,6 +10,7 @@ library(rvest)
 library(tidytext)
 library(urca)
 library(forecast)
+library(tseries)
 
 ##1. DATA WRANGLING/CLEANING
 
@@ -76,8 +77,8 @@ create_df <- function(a,b,c,d){
 ------------
 all_df <- list()
 for (i in 1:7){
-  #test <- create_df(listID[i], colname1[i], colname2[i], colname3[i])
-  test <- create_df(listID[i],colname3[i])
+  test <- create_df(listID[i], colname1[i], colname2[i], colname3[i])
+  #test <- create_df(listID[i],colname3[i])
   all_df[[i]] <- test
 }
 
@@ -88,8 +89,18 @@ for (i in 1:7){
 ------------
   
 ##a. Production Index Indonesia
+prod_index_ind <- create_df("IDNPRMNTO01IXOBM", growth_prod_ind, log_prod_ind, prod_index_ind)
 
-prod_index_ind <- create_df('IDNPRMNTO01IXOBM', growth_prod_ind, log_prod_ind, prod_index_ind)
+prod_index_ind <- fredr(series_id = "IDNPRMNTO01IXOBM",
+            observation_start = as.Date("2014-01-01"),
+            observation_end   = as.Date("2022-09-01")) %>% 
+  mutate(growth_prod_ind = ((value/lag(value,12)-1)*100)) %>%
+  arrange(date) %>%
+  mutate(log_prod_ind = log(value),
+         date = format(date, "%Y-%m")) %>%
+  rename(prod_index_ind = value) %>%
+  select(1,3,6,7) %>%
+  filter(date > '2014-12')
 #Reference: https://fred.stlouisfed.org/series/PRMNTO01IDQ661N
 
 ##b. Production Index United States
@@ -108,8 +119,7 @@ CPI_unitedstates <- create_df("USACPIALLMINMEI", inflation_us, log_inflation_us,
 #Reference: https://fred.stlouisfed.org/series/FPCPITOTLZGUSA
 
 ##e. Credit Indonesia
-path<-"C:/HARRIS/FALL 2022/R/Final Project/FinalProjectMacroResearch"
-credit_ind<-read_excel(file.path(path,"credit_ind.xlsx"))
+credit_ind<-read_excel("credit_ind.xlsx")
 credit_ind$log_credit_ind<-log(credit_ind$credit_ind)
 #Reference:https://www.ojk.go.id/id/kanal/perbankan/data-dan-statistik/statistik-perbankan-indonesia/Default.aspx 
 
@@ -175,12 +185,11 @@ effective_exchange_rate <- extract_data("https://www.bis.org/statistics/eer/broa
 global_uncertainty_index <- create_df("GEPUPPP", growth_uncertainty, log_uncertainty, uncertainty_index)
 
 ##merging data
-----------
-#Bisa berfungsi kalau Credit Indo sudah dapat
-merge <- function(a,b,c,d,e,f,g,h){
-  join_all(list(a,b,c,d,e), by='date', type='left') %>%
-    select(-c(f,g)) %>%
-    mutate(dummy = ifelse(date >= 'h', 1, 0))
+library(plyr)
+merge <- function(a,b,c,d,e,f,g,h,i){
+  join_all(list(a,b,c,d,e,f), by='date', type='left') %>%
+    select(-c(g,h)) %>%
+    mutate(dummy = ifelse(date >= i, 1, 0))
 }
 
 data_ind <- merge(prod_index_ind, 
@@ -191,7 +200,7 @@ data_ind <- merge(prod_index_ind,
                   policyrate_indonesia, 
                   15,
                   17,
-                  2020-03)
+                  "2020-03")
 
 data_us <- merge(prod_index_us, 
                  CPI_unitedstates,
@@ -201,24 +210,12 @@ data_us <- merge(prod_index_us,
                  policyrate_unitedstates, 
                  14,
                  16,
-                 2020-01)
-
------------
-  
-data_ind<-join_all(list(prod_index_ind, CPI_indonesia,credit_ind,global_uncertainty_index,effective_exchange_rate,policyrate_indonesia), by='date', type='left')
-data_ind<-data_ind[,-c(15,17)]
-data_ind$dummy<-ifelse(data_ind$date>="2020-03", 1, 0)
-
-data_us<-join_all(list(prod_index_us, CPI_unitedstates, credit_us, global_uncertainty_index,effective_exchange_rate,policyrate_unitedstates), by='date', type='left')
-data_us<-data_us[,-c(14,16)]
-data_us$dummy<-ifelse(data_us$date>="2020-01", 1, 0)
+                 "2020-01")
 
 write.csv(data_ind,"C:/HARRIS/FALL 2022/R/Final Project/FinalProjectMacroResearch/data_ind.csv")
 write.csv(data_us,"C:/HARRIS/FALL 2022/R/Final Project/FinalProjectMacroResearch/data_us.csv")
 
-
 ##2. CREATING PLOTS FOR DEPENDENT VARIABLES
-
 
 data_ind$date <- ym(data_ind$date)
 data_us$date <- ym(data_us$date)
@@ -242,24 +239,29 @@ all_df_plots %>%
   print()
 }
 
-plot_prod <- vars_plot(growth_prod_ind,growth_prod_us) +
-  ggtitle("Comparison of Indonesia and US Production Growth 2015-2022") + 
-  ylab("Growth Production") %>%
-  print()
-
-plot_inflation <- vars_plot(inflation_ind,inflation_us) +
-  ggtitle("Comparison of Inflation between Indonesia and US 2015-2022") + 
-  ylab("Inflation") %>%
-  print()
-
-plot_uncertainty <- ggplot(all_df_plots, aes(x = date, y = growth_uncertainty)) +
+#plot uncertainty
+ggplot(all_df_plots, aes(x = date, y = growth_uncertainty)) +
   geom_line() +
   theme(axis.text.x = element_text(angle = 90)) +
   scale_x_date(date_labels="%b %y",date_breaks  ="3 month") +
   xlab("Date") +
-  ggtitle("Growth Uncertainty 2015-2022") + 
-  ylab("Growth Uncertainty") %>%
-  print
+  ggtitle("Global Uncertainty Index 2015-2022") + 
+  ylab("Global Uncertainty")
+
+#plot credit
+vars_plot(growth_credit_ind, growth_credit_us) +
+  ggtitle("Comparison of Indonesia and US Credit Growth 2015-2022") + 
+  ylab("Growth Credit")
+
+#plot inflation
+vars_plot(inflation_ind,inflation_us) +
+  ggtitle("Comparison of Inflation between Indonesia and US 2015-2022") + 
+  ylab("Inflation")
+
+#plot production (output)
+vars_plot(growth_prod_ind,growth_prod_us) +
+  ggtitle("Comparison of Indonesia and US Production Growth 2015-2022") + 
+  ylab("Growth Production")
 
 ##3. WORKING ON THE REGRESSION MODEL
 
@@ -279,8 +281,7 @@ ts.plot(data_us$log_prod_us)
 ts.plot(data_us$FFR)
 ts.plot(data_us$log_er_us)
 
-##c. check stationarity data log
-library(tseries)
+##c. check stationary of data log
 pp.test(data_ind$CPI_ind) #nonstatitioner
 pp.test(data_ind$prod_index_ind) #statitioner
 pp.test(data_ind$uncertainty_index) #stationer
@@ -289,8 +290,8 @@ pp.test(data_ind$er_ind) #nonstationer
 
 pp.test(data_us$CPI_us) #nonstatitioner
 pp.test(data_us$prod_index_us) #nonstatitioner
-pp.test(data_us$FFR)#nonstationer
-pp.test(data_us$er_us)#nonstationer
+pp.test(data_us$FFR) #nonstationer
+pp.test(data_us$er_us) #nonstationer
 
 ##d. ARDL model will work on stationary as well as non stationary data
 
@@ -325,58 +326,78 @@ library(vars)
 
 #running model (Indonesia)
 ##model credit
-model_1_ind_credit<-dynlm(d(log_credit_ind)~L(BI_rate)+L(log_uncertainty)+L(log_er_ind),data=data_ind_ts)
+
+----------------------
+model1 <- function(var1,var2,var3,var4,data){
+  dynlm(paste(d(var1,1), "~", L(var2,0:1), "+", L(var3,0:1), "+", L(var4,0:1)), data = data)
+}
+
+model1_inflation <- model1("log_inflation_ind", 
+                           "BI_rate",
+                           "log_uncertainty",
+                           "log_er_ind",
+                           data_ind_ts)
+---------------------
+  
+  
+model_1_ind_credit<-dynlm(d(log_credit_ind,1)~L(BI_rate,0:1)+L(log_uncertainty,0:1)+L(log_er_ind,0:1),data=data_ind_ts)
 summary(model_1_ind_credit)
 
-model_2_ind_credit<-dynlm(d(log_credit_ind)~L(BI_rate)+L(log_uncertainty)+L(log_er_ind)+L((BI_rate*log_uncertainty)),data=data_ind_ts)
+model_2_ind_credit<-dynlm(d(log_credit_ind,1)~L(BI_rate,0:1)+L(log_uncertainty,0:1)+L(log_er_ind,0:1)+L((BI_rate*log_uncertainty),0:1),data=data_ind_ts)
 summary(model_2_ind_credit)
 
-model_3_ind_credit<-dynlm(d(log_credit_ind)~L(BI_rate)+L(log_uncertainty)+L(log_er_ind)+L((BI_rate*log_uncertainty))+L((BI_rate*log_uncertainty*dummy)),data=data_ind_ts)
+model_3_ind_credit<-dynlm(d(log_credit_ind,1)~L(BI_rate,0:1)+L(log_uncertainty,0:1)+L(log_er_ind,0:1)+L((BI_rate*log_uncertainty),0:1)+L((BI_rate*log_uncertainty*dummy),0:1),data=data_ind_ts)
 summary(model_3_ind_credit)
 
 ##model inflation 
-model_1_ind_inflation<-dynlm(d(log_inflation_ind)~L(BI_rate)+L(log_uncertainty)+L(log_er_ind),data=data_ind_ts)
+model_1_ind_inflation<-dynlm(d(log_inflation_ind,1)~L(BI_rate,0:1)+L(log_uncertainty,0:1)+L(log_er_ind,0:1),data=data_ind_ts)
 summary(model_1_ind_inflation)
 
-model_2_ind_inflation<-dynlm(d(log_inflation_ind)~L(BI_rate)+L(log_uncertainty)+L(log_er_ind)+L((BI_rate*log_uncertainty)),data=data_ind_ts)
+model_2_ind_inflation<-dynlm(d(log_inflation_ind,1)~L(BI_rate,0:1)+L(log_uncertainty,0:1)+L(log_er_ind,0:1)+L((BI_rate*log_uncertainty),0:1),data=data_ind_ts)
 summary(model_2_ind_inflation)
 
-model_3_ind_inflation<-dynlm(d(log_inflation_ind)~L(BI_rate)+L(log_uncertainty)+L(log_er_ind)+L(BI_rate*log_uncertainty)+L(BI_rate*log_uncertainty*dummy),data=data_ind_ts)
+model_3_ind_inflation<-dynlm(d(log_inflation_ind,1)~L(BI_rate,0:1)+L(log_uncertainty,0:1)+L(log_er_ind,0:1)+L((BI_rate*log_uncertainty),0:1)+L((BI_rate*log_uncertainty*dummy),0:1),data=data_ind_ts)
 summary(model_3_ind_inflation)
 
 ##model output 
-model_1_ind_output<-dynlm(d(log_prod_ind)~L(BI_rate)+L(log_uncertainty)+L(log_er_ind),data=data_ind_ts)
+model_1_ind_output<-dynlm(d(log_prod_ind,1)~L(BI_rate,0:1)+L(log_uncertainty,0:1)+L(log_er_ind,0:1),data=data_ind_ts)
 summary(model_1_ind_output)
 
-model_2_ind_output<-dynlm(d(log_prod_ind)~L(BI_rate)+L(log_uncertainty)+L(log_er_ind)+L((BI_rate*log_uncertainty)),data=data_ind_ts)
+model_2_ind_output<-dynlm(d(log_prod_ind,1)~L(BI_rate,0:1)+L(log_uncertainty,0:1)+L(log_er_ind,0:1)+L((BI_rate*log_uncertainty),0:1),data=data_ind_ts)
 summary(model_2_ind_output)
 
-model_3_ind_output<-dynlm(d(log_prod_ind)~L(BI_rate)+L(log_uncertainty)+L(log_er_ind)+L(BI_rate*log_uncertainty)+L(BI_rate*log_uncertainty*dummy),data=data_ind_ts)
+model_3_ind_output<-dynlm(d(log_prod_ind,1)~L(BI_rate,0:1)+L(log_uncertainty,0:1)+L(log_er_ind,0:1)+L((BI_rate*log_uncertainty),0:1)+L((BI_rate*log_uncertainty*dummy),0:1),data=data_ind_ts)
 summary(model_3_ind_output)
 
 #running model (United States)
 ##model credit 
-model_1_us_credit<-dynlm(d(log_credit_us)~L(FFR)+L(log_uncertainty)+L(log_er_us),data=data_us_ts)
+model_1_us_credit<-dynlm(d(log_credit_us,1)~L(FFR,0:1)+L(log_uncertainty,0:1)+L(log_er_us,0:1),data=data_us_ts)
 summary(model_1_us_credit)
-model_2_us_credit<-dynlm(d(log_credit_us)~L(FFR)+L(log_uncertainty)+L(log_er_us)+L((FFR*log_uncertainty)),data=data_us_ts)
+
+model_2_us_credit<-dynlm(d(log_credit_us,1)~L(FFR,0:1)+L(log_uncertainty,0:1)+L(log_er_us,0:1)+L((FFR*log_uncertainty),0:1),data=data_us_ts)
 summary(model_2_us_credit)
-model_3_us_credit<-dynlm(d(log_credit_us)~L(FFR)+L(log_uncertainty)+L(log_er_us)+L((FFR*log_uncertainty))+L((FFR*log_uncertainty*dummy)),data=data_us_ts)
+
+model_3_us_credit<-dynlm(d(log_credit_us,1)~L(FFR,0:1)+L(log_uncertainty,0:1)+L(log_er_us,0:1)+L((FFR*log_uncertainty),0:1)+L((FFR*log_uncertainty*dummy),0:1),data=data_us_ts)
 summary(model_3_us_credit)
 
 ##run ARDL model US - Inflation
-model_1_us_inflation<-dynlm(d(log_inflation_us)~L(FFR)+L(log_uncertainty)+L(log_er_us),data=data_us_ts)
+model_1_us_inflation<-dynlm(d(log_inflation_us,1)~L(FFR,0:1)+L(log_uncertainty,0:1)+L(log_er_us,0:1),data=data_us_ts)
 summary(model_1_us_inflation)
-model_2_us_inflation<-dynlm(d(log_inflation_us)~L(FFR)+L(log_uncertainty)+L(log_er_us)+L((FFR*log_uncertainty)),data=data_us_ts)
+
+model_2_us_inflation<-dynlm(d(log_inflation_us,1)~L(FFR,0:1)+L(log_uncertainty,0:1)+L(log_er_us,0:1)+L((FFR*log_uncertainty),0:1),data=data_us_ts)
 summary(model_2_us_inflation)
-model_3_us_inflation<-dynlm(d(log_inflation_us)~L(FFR)+L(log_uncertainty)+L(log_er_us)+L((FFR*log_uncertainty))+L((FFR*log_uncertainty*dummy)),data=data_us_ts)
+
+model_3_us_inflation<-dynlm(d(log_inflation_us,1)~L(FFR,0:1)+L(log_uncertainty,0:1)+L(log_er_us,0:1)+L((FFR*log_uncertainty),0:1)+L((FFR*log_uncertainty*dummy),0:1),data=data_us_ts)
 summary(model_3_us_inflation)
 
 ##run ARDL model - Output 
-model_1_us_output<-dynlm(d(log_prod_us)~L(FFR)+L(log_uncertainty)+L(log_er_us),data=data_us_ts)
+model_1_us_output<-dynlm(d(log_prod_us,1)~L(FFR,0:1)+L(log_uncertainty,0:1)+L(log_er_us,0:1),data=data_us_ts)
 summary(model_1_us_output)
-model_2_us_output<-dynlm(d(log_prod_us)~L(FFR)+L(log_uncertainty)+L(log_er_us)+L((FFR*log_uncertainty)),data=data_us_ts)
+
+model_2_us_output<-dynlm(d(log_prod_us,1)~L(FFR,0:1)+L(log_uncertainty,0:1)+L(log_er_us,0:1)+L((FFR*log_uncertainty),0:1),data=data_us_ts)
 summary(model_2_us_output)
-model_3_us_output<-dynlm(d(log_prod_us,)~L(FFR)+L(log_uncertainty)+L(log_er_us)+L((FFR*log_uncertainty))+L((FFR*log_uncertainty*dummy)),data=data_us_ts)
+
+model_3_us_output<-dynlm(d(log_prod_us,)~L(FFR,0:1)+L(log_uncertainty,0:1)+L(log_er_us,0:1)+L((FFR*log_uncertainty),0:1)+L((FFR*log_uncertainty*dummy),0:1),data=data_us_ts)
 summary(model_3_us_output)
 
 #run VECM Model (STEP2)
@@ -404,12 +425,17 @@ extract_news <- function(x){
 #4.1 PLOT FOR NEWS IN INDONESIA
 IND_news <- extract_news("Indonesia_news.xlsx")
 
-sentiment_afinn <- get_sentiments("afinn") %>%
-  rename(affin = value)
-sentiment_bing <- get_sentiments("bing") %>%
-  rename(bing = sentiment)
-sentiment_nrc <- get_sentiments("nrc") %>%
+sentiment_nrc <- 
+  get_sentiments("nrc") %>%
   rename(nrc = sentiment)
+
+sentiment_afinn <- 
+  get_sentiments("afinn") %>%
+  rename(afinn = value)
+
+sentiment_bing <- 
+  get_sentiments("bing") %>%
+  rename(bing = sentiment)
 
 all_articles_Ind <- list()
 for (i in 1:lengths(IND_news)){
@@ -456,7 +482,28 @@ Affin_Ind_News <- plot(all_df_Ind, affin) +
 
 US_news <- extract_news("US_news.xlsx")
 
+----------------
 ##WARNING: Butuh di function kan tapi gw gagal. Mungkin bs diminta bantuan Jeff or Icha. Soalnya ini berulang dr yg di atas
+
+test <- function(a){
+all_articles <- list()
+for (i in 1:lengths(a)){
+  list_article <- unnest_tokens(a[i,], 
+                                word_tokens, 
+                                text, 
+                                token = "words") %>%
+    anti_join(stop_words, by = c("word_tokens" = "word")) %>%
+    group_by(word_tokens) %>%
+    count() %>%
+    left_join(sentiment_nrc, by = c("word_tokens" = "word")) %>%
+    left_join(sentiment_afinn, by = c("word_tokens" = "word")) %>%
+    left_join(sentiment_bing, by = c("word_tokens" = "word"))
+  all_articles[[i]] <- list_article
+}
+}
+
+test_again <- test(US_news)
+----------------
 
 all_articles_US <- list()
 for (i in 1:lengths(US_news)){
@@ -466,11 +513,11 @@ for (i in 1:lengths(US_news)){
                                 token = "words") %>%
     anti_join(stop_words, by = c("word_tokens" = "word")) %>%
     group_by(word_tokens) %>%
-    count(sort = T) %>%
+    count() %>%
     left_join(sentiment_nrc, by = c("word_tokens" = "word")) %>%
     left_join(sentiment_afinn, by = c("word_tokens" = "word")) %>%
     left_join(sentiment_bing, by = c("word_tokens" = "word"))
-  all_articles_US [[i]] <- list_article
+  all_articles_US[[i]] <- list_article
 }
 
 all_df_US <- do.call(rbind, all_articles_US)
@@ -483,9 +530,9 @@ NRC_US_News <- plot(all_df_US, nrc) +
 
 BING_US_News <- plot(all_df_US, bing) +
   labs(title = "United States News Sentiment (BING) to Interest Rate Changes 2015 - 2022") %>%
-  print
+  print()
 
-Affin_US_News <- plot(all_df_US, affin) +
+Affin_US_News <- plot(all_df_US, afinn) +
   labs(title = "United States News Sentiment (AFINN) to Interest Rate Changes 2015 - 2022") %>%
   print()
 
