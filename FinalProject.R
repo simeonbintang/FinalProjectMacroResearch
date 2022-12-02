@@ -90,7 +90,7 @@ for (i in 1:7){
 ------------
   
 ##a. Production Index Indonesia
-prod_index_ind <- create_df("IDNPRMNTO01IXOBM", growth_prod_ind, log_prod_ind, prod_index_ind)
+prod_index_Ind <- create_df("IDNPRMNTO01IXOBM", growth_prod_ind, log_prod_ind, prod_index_ina)
 
 prod_index_ind <- fredr(series_id = "IDNPRMNTO01IXOBM",
             observation_start = as.Date("2014-01-01"),
@@ -102,6 +102,7 @@ prod_index_ind <- fredr(series_id = "IDNPRMNTO01IXOBM",
   rename(prod_index_ind = value) %>%
   select(1,3,6,7) %>%
   filter(date > '2014-12')
+
 #Reference: https://fred.stlouisfed.org/series/PRMNTO01IDQ661N
 
 ##b. Production Index United States
@@ -120,7 +121,7 @@ CPI_unitedstates <- create_df("USACPIALLMINMEI", inflation_us, log_inflation_us,
 #Reference: https://fred.stlouisfed.org/series/FPCPITOTLZGUSA
 
 ##e. Credit Indonesia
-credit_ind<-read_excel("credit_ind.xlsx")
+credit_ind <- read_excel("credit_ind.xlsx")
 credit_ind$log_credit_ind<-log(credit_ind$credit_ind)
 #Reference:https://www.ojk.go.id/id/kanal/perbankan/data-dan-statistik/statistik-perbankan-indonesia/Default.aspx 
 
@@ -475,12 +476,10 @@ NRC_Ind_News <- plot(all_df_Ind, nrc) +
 BING_Ind_News <- plot(all_df_Ind, bing) +
   labs(title = "United States News Sentiment (BING) to Interest Rate Changes 2015 - 2022") 
 
-Affin_Ind_News <- plot(all_df_Ind, affin) +
+Affin_Ind_News <- plot(all_df_Ind, afinn) +
   labs(title = "Indonesia News Sentiment (AFINN) to Interest Rate Changes 2015 - 2022") 
 
 #4.2 PLOT FOR NEWS IN THE US
-
-US_news <- extract_news("US_news.xlsx")
 
 ----------------
 ##WARNING: Butuh di function kan tapi gw gagal. Mungkin bs diminta bantuan Jeff or Icha. Soalnya ini berulang dr yg di atas
@@ -504,6 +503,8 @@ for (i in 1:lengths(a)){
 
 test_again <- test(US_news)
 ----------------
+
+US_news <- extract_news("US_news.xlsx")
 
 all_articles_US <- list()
 for (i in 1:lengths(US_news)){
@@ -531,8 +532,7 @@ BING_US_News <- plot(all_df_US, bing) +
   labs(title = "United States News Sentiment (BING) to Interest Rate Changes 2015 - 2022") 
 
 Affin_US_News <- plot(all_df_US, afinn) +
-  labs(title = "United States News Sentiment (AFINN) to Interest Rate Changes 2015 - 2022") %>%
-  print()
+  labs(title = "United States News Sentiment (AFINN) to Interest Rate Changes 2015 - 2022")
 
 ##5. SHINY 
 
