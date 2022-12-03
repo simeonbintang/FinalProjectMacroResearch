@@ -77,7 +77,7 @@ create_df <- function(a,b,c,d){
 }
   
 ##a. Production Index Indonesia
-prod_index_ind <- create_df("IDNPRMNTO01IXOBM", growth_prod_ind, log_prod_ind, prod_index_ina)
+prod_index_ind <- create_df("IDNPRMNTO01IXOBM", growth_prod_ind, log_prod_ind, prod_index_ind)
 
 prod_index_ind <- fredr(series_id = "IDNPRMNTO01IXOBM",
             observation_start = as.Date("2014-01-01"),
