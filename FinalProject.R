@@ -99,8 +99,8 @@ prod_index_ind <- fredr(series_id = "IDNPRMNTO01IXOBM",
   arrange(date) %>%
   mutate(log_prod_ind = log(value),
          date = format(date, "%Y-%m")) %>%
-  rename(prod_index_ind = value) %>%
-  select(1,3,6,7) %>%
+  dplyr::rename(prod_index_ind = value) %>%
+  dplyr::select(1,3,6,7) %>%
   filter(date > '2014-12')
 
 #Reference: https://fred.stlouisfed.org/series/PRMNTO01IDQ661N
