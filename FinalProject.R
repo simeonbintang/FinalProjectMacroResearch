@@ -249,22 +249,26 @@ plot_uncertainty <- ggplot(all_df_plots, aes(x = date, y = growth_uncertainty)) 
   scale_x_date(date_labels="%b %y",date_breaks  ="3 month") +
   xlab("Date") +
   ggtitle("Global Uncertainty Index 2015-2022") + 
-  ylab("Global Uncertainty") 
+  ylab("Global Uncertainty")
+plot_uncertainty
 
 #plot credit
 plot_credit <- vars_plot(growth_credit_ind, growth_credit_us) +
   ggtitle("Comparison of Indonesia and US Credit Growth 2015-2022") + 
   ylab("Growth Credit")
+plot_credit
 
 #plot inflation
 plot_inflation <- vars_plot(inflation_ind,inflation_us) +
   ggtitle("Comparison of Inflation between Indonesia and US 2015-2022") + 
   ylab("Inflation")
+plot_inflation
 
 #plot production (output)
 plot_prod <- vars_plot(growth_prod_ind,growth_prod_us) +
   ggtitle("Comparison of Indonesia and US Production Growth 2015-2022") + 
   ylab("Growth Production")
+plot_prod
 
 ##3. WORKING ON THE REGRESSION MODEL
 
@@ -284,7 +288,7 @@ ts.plot(data_us$log_prod_us)
 ts.plot(data_us$FFR)
 ts.plot(data_us$log_er_us)
 
-##c. check stationary of data log
+##c. check stationarity of data log
 pp.test(data_ind$CPI_ind) #nonstatitioner
 pp.test(data_ind$prod_index_ind) #statitioner
 pp.test(data_ind$uncertainty_index) #stationer
@@ -342,14 +346,13 @@ model1_inflation <- model1("log_inflation_ind",
                            data_ind_ts)
 ---------------------
   
-  
 model_1_ind_credit<-dynlm(d(log_credit_ind,1)~L(BI_rate,0:1)+L(log_uncertainty,0:1)+L(log_er_ind,0:1),data=data_ind_ts)
 summary(model_1_ind_credit)
 
 model_2_ind_credit<-dynlm(d(log_credit_ind,1)~L(BI_rate,0:1)+L(log_uncertainty,0:1)+L(log_er_ind,0:1)+L((BI_rate*log_uncertainty),0:1),data=data_ind_ts)
 summary(model_2_ind_credit)
 
-model_3_ind_credit<-dynlm(d(log_credit_ind,1)~L(BI_rate,0:1)+L(log_uncertainty,0:1)+L(log_er_ind,0:1)+L((BI_rate*log_uncertainty),0:1)+L((BI_rate*log_uncertainty*dummy),0:1),data=data_ind_ts)
+model_3_ind_credit<-dynlm(d(log_credit_ind,1)~L(BI_rate,0:1)+L(log_uncertainty,0:1)+L(log_er_ind,0:1)+L((BI_rate*log_uncertainty),0:1)+L(dummy,0:1)+L((BI_rate*log_uncertainty*dummy),0:1),data=data_ind_ts)
 summary(model_3_ind_credit)
 
 ##model inflation 
@@ -359,7 +362,7 @@ summary(model_1_ind_inflation)
 model_2_ind_inflation<-dynlm(d(log_inflation_ind,1)~L(BI_rate,0:1)+L(log_uncertainty,0:1)+L(log_er_ind,0:1)+L((BI_rate*log_uncertainty),0:1),data=data_ind_ts)
 summary(model_2_ind_inflation)
 
-model_3_ind_inflation<-dynlm(d(log_inflation_ind,1)~L(BI_rate,0:1)+L(log_uncertainty,0:1)+L(log_er_ind,0:1)+L((BI_rate*log_uncertainty),0:1)+L((BI_rate*log_uncertainty*dummy),0:1),data=data_ind_ts)
+model_3_ind_inflation<-dynlm(d(log_inflation_ind,1)~L(BI_rate,0:1)+L(log_uncertainty,0:1)+L(log_er_ind,0:1)+L((BI_rate*log_uncertainty),0:1)+L(dummy,0:1)+L((BI_rate*log_uncertainty*dummy),0:1),data=data_ind_ts)
 summary(model_3_ind_inflation)
 
 ##model output 
@@ -369,7 +372,7 @@ summary(model_1_ind_output)
 model_2_ind_output<-dynlm(d(log_prod_ind,1)~L(BI_rate,0:1)+L(log_uncertainty,0:1)+L(log_er_ind,0:1)+L((BI_rate*log_uncertainty),0:1),data=data_ind_ts)
 summary(model_2_ind_output)
 
-model_3_ind_output<-dynlm(d(log_prod_ind,1)~L(BI_rate,0:1)+L(log_uncertainty,0:1)+L(log_er_ind,0:1)+L((BI_rate*log_uncertainty),0:1)+L((BI_rate*log_uncertainty*dummy),0:1),data=data_ind_ts)
+model_3_ind_output<-dynlm(d(log_prod_ind,1)~L(BI_rate,0:1)+L(log_uncertainty,0:1)+L(log_er_ind,0:1)+L((BI_rate*log_uncertainty),0:1)+L(dummy,0:1)+L((BI_rate*log_uncertainty*dummy),0:1),data=data_ind_ts)
 summary(model_3_ind_output)
 
 #running model (United States)
@@ -380,7 +383,7 @@ summary(model_1_us_credit)
 model_2_us_credit<-dynlm(d(log_credit_us,1)~L(FFR,0:1)+L(log_uncertainty,0:1)+L(log_er_us,0:1)+L((FFR*log_uncertainty),0:1),data=data_us_ts)
 summary(model_2_us_credit)
 
-model_3_us_credit<-dynlm(d(log_credit_us,1)~L(FFR,0:1)+L(log_uncertainty,0:1)+L(log_er_us,0:1)+L((FFR*log_uncertainty),0:1)+L((FFR*log_uncertainty*dummy),0:1),data=data_us_ts)
+model_3_us_credit<-dynlm(d(log_credit_us,1)~L(FFR,0:1)+L(log_uncertainty,0:1)+L(log_er_us,0:1)+L((FFR*log_uncertainty),0:1)+L(dummy,1:0)+L((FFR*log_uncertainty*dummy),0:1),data=data_us_ts)
 summary(model_3_us_credit)
 
 ##run ARDL model US - Inflation
@@ -390,7 +393,7 @@ summary(model_1_us_inflation)
 model_2_us_inflation<-dynlm(d(log_inflation_us,1)~L(FFR,0:1)+L(log_uncertainty,0:1)+L(log_er_us,0:1)+L((FFR*log_uncertainty),0:1),data=data_us_ts)
 summary(model_2_us_inflation)
 
-model_3_us_inflation<-dynlm(d(log_inflation_us,1)~L(FFR,0:1)+L(log_uncertainty,0:1)+L(log_er_us,0:1)+L((FFR*log_uncertainty),0:1)+L((FFR*log_uncertainty*dummy),0:1),data=data_us_ts)
+model_3_us_inflation<-dynlm(d(log_inflation_us,1)~L(FFR,0:1)+L(log_uncertainty,0:1)+L(log_er_us,0:1)+L((FFR*log_uncertainty),0:1)+L(dummy,0:1)+L((FFR*log_uncertainty*dummy),0:1),data=data_us_ts)
 summary(model_3_us_inflation)
 
 ##run ARDL model - Output 
@@ -400,11 +403,8 @@ summary(model_1_us_output)
 model_2_us_output<-dynlm(d(log_prod_us,1)~L(FFR,0:1)+L(log_uncertainty,0:1)+L(log_er_us,0:1)+L((FFR*log_uncertainty),0:1),data=data_us_ts)
 summary(model_2_us_output)
 
-model_3_us_output<-dynlm(d(log_prod_us,)~L(FFR,0:1)+L(log_uncertainty,0:1)+L(log_er_us,0:1)+L((FFR*log_uncertainty),0:1)+L((FFR*log_uncertainty*dummy),0:1),data=data_us_ts)
+model_3_us_output<-dynlm(d(log_prod_us,)~L(FFR,0:1)+L(log_uncertainty,0:1)+L(log_er_us,0:1)+L((FFR*log_uncertainty),0:1)+L(dummy,0:1)+L((FFR*log_uncertainty*dummy),0:1),data=data_us_ts)
 summary(model_3_us_output)
-
-#run VECM Model (STEP2)
-##run VECM Model Indonesia - Inflation
 
 
 ##4.SENTIMENT ANALYSIS
