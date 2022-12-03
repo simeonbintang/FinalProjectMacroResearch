@@ -74,7 +74,7 @@ create_df <- function(a,b,c,d){
     rename({{d}} := value) %>%
     select(1,3,6,7) %>%
     filter(date > '2014-12')
-
+}
   
 ##a. Production Index Indonesia
 prod_index_Ind <- create_df("IDNPRMNTO01IXOBM", growth_prod_ind, log_prod_ind, prod_index_ina)
