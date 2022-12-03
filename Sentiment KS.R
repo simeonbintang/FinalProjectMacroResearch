@@ -75,19 +75,19 @@ create_df <- function(a,b,c,d){
     select(1,3,6,7) %>%
     filter(date > '2014-12')
 }
-#------------
-#all_df <- list()
-#for (i in 1:7){
-#  test <- create_df(listID[i], colname1[i], colname2[i], colname3[i])
+------------
+all_df <- list()
+for (i in 1:7){
+  test <- create_df(listID[i], colname1[i], colname2[i], colname3[i])
   #test <- create_df(listID[i],colname3[i])
-#  all_df[[i]] <- test
-#}
+  all_df[[i]] <- test
+}
 
-#for (i in 1:7){
+for (i in 1:7){
   #print(paste(unlist(listID[i]),collapse=""))
-#  print(colname1[i])
-#}
-#------------
+  print(colname1[i])
+}
+------------
   
 ##a. Production Index Indonesia
 prod_index_Ind <- create_df("IDNPRMNTO01IXOBM", growth_prod_ind, log_prod_ind, prod_index_ina)
@@ -99,8 +99,8 @@ prod_index_ind <- fredr(series_id = "IDNPRMNTO01IXOBM",
   arrange(date) %>%
   mutate(log_prod_ind = log(value),
          date = format(date, "%Y-%m")) %>%
-  dplyr::rename(prod_index_ind = value) %>%
-  dplyr::select(1,3,6,7) %>%
+  rename(prod_index_ind = value) %>%
+  select(1,3,6,7) %>%
   filter(date > '2014-12')
 
 #Reference: https://fred.stlouisfed.org/series/PRMNTO01IDQ661N
@@ -334,17 +334,16 @@ library(vars)
 #running model (Indonesia)
 ##model credit
 
-#----------------------
-#model1 <- function(var1,var2,var3,var4,data){
-#  dynlm(paste(d(var1,1), "~", L(var2,0:1), "+", L(var3,0:1), "+", L(var4,0:1)), data = data)
-#}
+model1 <- function(var1,var2,var3,var4,data){
+  dynlm(paste(d(var1,1), "~", L(var2,0:1), "+", L(var3,0:1), "+", L(var4,0:1)), data = data)
+}
 
-#model1_inflation <- model1("log_inflation_ind", 
-#                           "BI_rate",
-#                           "log_uncertainty",
-#                           "log_er_ind",
-#                           data_ind_ts)
-#---------------------
+model1_inflation <- model1("log_inflation_ind", 
+                           "BI_rate",
+                           "log_uncertainty",
+                           "log_er_ind",
+                           data_ind_ts)
+---------------------
   
 model_1_ind_credit<-dynlm(d(log_credit_ind,1)~L(BI_rate,0:1)+L(log_uncertainty,0:1)+L(log_er_ind,0:1),data=data_ind_ts)
 summary(model_1_ind_credit)
