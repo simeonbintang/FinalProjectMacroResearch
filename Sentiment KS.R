@@ -74,7 +74,20 @@ create_df <- function(a,b,c,d){
     rename({{d}} := value) %>%
     select(1,3,6,7) %>%
     filter(date > '2014-12')
+}
+------------
+all_df <- list()
+for (i in 1:7){
+  test <- create_df(listID[i], colname1[i], colname2[i], colname3[i])
+  #test <- create_df(listID[i],colname3[i])
+  all_df[[i]] <- test
+}
 
+for (i in 1:7){
+  #print(paste(unlist(listID[i]),collapse=""))
+  print(colname1[i])
+}
+------------
   
 ##a. Production Index Indonesia
 prod_index_Ind <- create_df("IDNPRMNTO01IXOBM", growth_prod_ind, log_prod_ind, prod_index_ina)
@@ -86,8 +99,8 @@ prod_index_ind <- fredr(series_id = "IDNPRMNTO01IXOBM",
   arrange(date) %>%
   mutate(log_prod_ind = log(value),
          date = format(date, "%Y-%m")) %>%
-  dplyr::rename(prod_index_ind = value) %>%
-  dplyr::select(1,3,6,7) %>%
+  rename(prod_index_ind = value) %>%
+  select(1,3,6,7) %>%
   filter(date > '2014-12')
 
 #Reference: https://fred.stlouisfed.org/series/PRMNTO01IDQ661N
@@ -174,35 +187,35 @@ effective_exchange_rate <- extract_data("https://www.bis.org/statistics/eer/broa
 global_uncertainty_index <- create_df("GEPUPPP", growth_uncertainty, log_uncertainty, uncertainty_index)
 
 ##merging data
-
-merge <- function(a,b,c,d){
-  test<-a%>%reduce(full_join,by='date')%>%
-    select(-c(b,c)) %>%
-    mutate(dummy = ifelse(date >= d, 1, 0))
+library(plyr)
+merge <- function(a,b,c,d,e,f,g,h,i){
+  join_all(list(a,b,c,d,e,f), by='date', type='left') %>%
+    select(-c(g,h)) %>%
+    mutate(dummy = ifelse(date >= i, 1, 0))
 }
 
-df_list_ind<-list(prod_index_ind,
-                  credit_ind,
+data_ind <- merge(prod_index_ind, 
                   CPI_indonesia,
+                  credit_ind,
                   global_uncertainty_index,
                   effective_exchange_rate,
-                  policyrate_indonesia)
+                  policyrate_indonesia, 
+                  15,
+                  17,
+                  "2020-03")
 
-data_ind<-merge(df_list_ind,15,17,"2020-03")
-
-df_list_us<-list(prod_index_us, 
+data_us <- merge(prod_index_us, 
                  CPI_unitedstates,
                  credit_us,
                  global_uncertainty_index,
                  effective_exchange_rate,
-                 policyrate_unitedstates)
-
-data_us<-merge(df_list_us,14,16,"2020-01")
+                 policyrate_unitedstates, 
+                 14,
+                 16,
+                 "2020-01")
 
 write.csv(data_ind)
 write.csv(data_us)
-
-
 
 ##2. CREATING PLOTS FOR DEPENDENT VARIABLES
 
@@ -321,17 +334,16 @@ library(vars)
 #running model (Indonesia)
 ##model credit
 
-#----------------------
-#model1 <- function(var1,var2,var3,var4,data){
-#  dynlm(paste(d(var1,1), "~", L(var2,0:1), "+", L(var3,0:1), "+", L(var4,0:1)), data = data)
-#}
+model1 <- function(var1,var2,var3,var4,data){
+  dynlm(paste(d(var1,1), "~", L(var2,0:1), "+", L(var3,0:1), "+", L(var4,0:1)), data = data)
+}
 
-#model1_inflation <- model1("log_inflation_ind", 
-#                           "BI_rate",
-#                           "log_uncertainty",
-#                           "log_er_ind",
-#                           data_ind_ts)
-#---------------------
+model1_inflation <- model1("log_inflation_ind", 
+                           "BI_rate",
+                           "log_uncertainty",
+                           "log_er_ind",
+                           data_ind_ts)
+---------------------
   
 model_1_ind_credit<-dynlm(d(log_credit_ind,1)~L(BI_rate,0:1)+L(log_uncertainty,0:1)+L(log_er_ind,0:1),data=data_ind_ts)
 summary(model_1_ind_credit)
